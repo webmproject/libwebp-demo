@@ -1,2 +1,6 @@
 # libwebp-demo
-Demos, code samples a,d research matierials related to libwebp and the WebP image format
+
+Demos, code samples and research materials related to libwebp and the [WebP]
+image format.
+
+[WebP]: https://developers.google.com/speed/webp/
