@@ -2,7 +2,7 @@
 
  Crude script for measuring WebP decoding speed on Android device.
 
- Version 003 : http://webmproject.github.io/libwebp-demo/android_webp_test/android_webp_test_003.tar.gz
+ Version 003 : https://github.com/webmproject/libwebp-demo/raw/master/android_webp_test/android_webp_test_003.tar.gz
 
  This script will download the released liwebp archives, patch them, compile
  a binary named 'dec_speed_*' to measure decoding speed, run it on the device
