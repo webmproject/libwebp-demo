@@ -1,0 +1,158 @@
+From b9bb89936a8610a10d8e7d7d8b13c48671a949dd Mon Sep 17 00:00:00 2001
+From: Pascal Massimino <pascal.massimino@gmail.com>
+Date: Sat, 4 Feb 2017 01:48:28 -0800
+Subject: [PATCH] add dec_speed test app
+
+Change-Id: I3f08b18f609406f0e94f3dd1ce20e90a735efe4d
+---
+ examples/Android.mk  |  16 ++++++++
+ examples/dec_speed.c | 114 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 2 files changed, 130 insertions(+)
+ create mode 100644 examples/dec_speed.c
+
+diff --git a/examples/Android.mk b/examples/Android.mk
+index 00d53baf..2aedec41 100644
+--- a/examples/Android.mk
++++ b/examples/Android.mk
+@@ -80,3 +80,19 @@ LOCAL_STATIC_LIBRARIES := example_util imageio_util imagedec webpmux webp
+ LOCAL_MODULE := img2webp_example
+ 
+ include $(BUILD_EXECUTABLE)
++
++################################################################################
++# dec_speed
++
++include $(CLEAR_VARS)
++
++LOCAL_SRC_FILES := \
++    dec_speed.c \
++
++LOCAL_CFLAGS := $(WEBP_CFLAGS)
++LOCAL_C_INCLUDES := $(LOCAL_PATH)/../src
++LOCAL_STATIC_LIBRARIES := webp
++
++LOCAL_MODULE := dec_speed
++
++include $(BUILD_EXECUTABLE)
+diff --git a/examples/dec_speed.c b/examples/dec_speed.c
+new file mode 100644
+index 00000000..76c4e47d
+--- /dev/null
++++ b/examples/dec_speed.c
+@@ -0,0 +1,113 @@
++// Copyright 2017 Google Inc. All Rights Reserved.
++//
++// Use of this source code is governed by a BSD-style license
++// that can be found in the COPYING file in the root of the source
++// tree. An additional intellectual property rights grant can be found
++// in the file PATENTS. All contributing project authors may
++// be found in the AUTHORS file in the root of the source tree.
++// -----------------------------------------------------------------------------
++//
++//  Command-line tool for measuring decoding speed.
++//  gcc -o dec_speed dec_speed.c -O2 -I../src/ ../src/libwebp.a -lm -lpthread
++//
++// Author: Skal (pascal.massimino@gmail.com)
++
++#include <assert.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include <sys/time.h>
++
++#include "webp/decode.h"
++
++#define MAX_FILES 600
++#define MEMORY_SIZE ((size_t)256u * 1024 * 1024)   // 256M
++
++static double GetTime() {
++  struct timeval t;
++  gettimeofday(&t, NULL);
++  return (double)t.tv_sec + (double)t.tv_usec / 1000000.;
++}
++
++int main(int argc, const char *argv[]) {
++  int verbose = 0;
++  int num_loops = 1;
++  const uint8_t* files_start[MAX_FILES];
++  size_t files_size[MAX_FILES];
++  int num_files = 0;
++  int error = -1;
++  int n;
++  uint8_t* mem = (uint8_t*)malloc(MEMORY_SIZE * sizeof(*mem));
++  const uint8_t* const mem_end = mem + MEMORY_SIZE;
++  uint8_t* ptr = mem;
++
++  if (mem == NULL) goto End;
++
++  for (n = 1; n < argc; ++n) {
++    if (argv[n][0] == '-') {
++      num_loops = atoi(&argv[n][1]);
++    } else {
++      int ok = 0;
++      size_t file_size;
++      const char* file_name = argv[n];
++      FILE* in = fopen(file_name, "rb");
++      if (in == NULL) {
++        printf("File %s not found! skipping.\n", file_name);
++        continue;
++      }
++      fseek(in, 0, SEEK_END);
++      file_size = ftell(in);
++      fseek(in, 0, SEEK_SET);
++      if (verbose) printf("%s (%d bytes)\n", file_name, (int)file_size);
++      if (ptr + file_size > mem_end) {
++        printf("Memory area exhausted after file %s.\n", file_name);
++        goto Finish;
++      }
++      if (fread(ptr, file_size, 1, in) != 1) {
++        printf("Couldn't read file %s.\n", file_name);
++        goto Finish;
++      }
++    ok = 1;
++   Finish:
++      fclose(in);
++      if (ok) {
++        files_start[num_files] = ptr;
++        files_size[num_files] = file_size;
++        ptr += file_size;
++        ++num_files;
++        if (num_files == MAX_FILES) break;
++      } else {
++        error = -1;
++        break;
++      }
++    }
++  }
++  if (verbose) printf("Read %d files\n", num_files);
++  error = 0;
++
++  {
++    double elapsed = 0.;
++    for (n = 0; n < num_files; ++n) {
++      int k;
++      double start;
++      for (k = 0; k < num_loops + 3; ++k) {
++        if (k == 3) start = GetTime();
++        const uint8_t* const out =
++            WebPDecodeARGB(files_start[n], files_size[n], NULL, NULL);
++        if (out == NULL) {
++          printf("Problem decoding file #%d\n", n);
++          error = -1;
++          break;
++        }
++        free((void*)out);
++      }
++      elapsed += GetTime() - start;
++    }
++    printf("Elapsed: %.3lf s\n", elapsed);
++  }
++  if (error != 0) printf("PROBLEM!\n");
++
++ End:
++  free(mem);
++  return error;
++}
+-- 
+2.11.0.390.gc69c2f50cf-goog
+
