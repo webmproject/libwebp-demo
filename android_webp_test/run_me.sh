@@ -2,11 +2,11 @@
 
 # Crude script for measuring WebP decoding speed on Android device.
 #
-# Version 003
+# Version 004
 #
-# This script will download the released libwebp archives, compile a binary named
-# 'dec_speed_*' to measure decoding speed, run it on the device and report the
-# decoding speed.
+# This script will download the released liwebp archives, patch them, compile
+# a binary named 'dec_speed_*' to measure decoding speed, run it on the device
+# and report the numbers.
 #
 # Pre-requisites:
 #   android NDK
@@ -15,16 +15,12 @@
 #   a writable /data/local/tmp directory on your device
 #
 # How to run:
-#
-#    ./run_me.sh images/*.webp
-#
-#  should suffice.
 #  By default, the script with download, extract and compile the official
 #  libwebp release archives. It will also transfer the images to test on the
 #  phone.
-#  Subsequently, you can use the `-r` option to only re-do the timing test.
-#  To only redo the timing test with new images, use the options `-r +t`
-#  (in this order).
+#  Subsequently, you can use the '-r' option to only re-do the timing test.
+#  To only redo the timing test with new images, use the options "-r +t" (in
+#  this order).
 #
 #  The pictures you want to use for testing are searched as ./images/*.webp
 #  by default. You can pass the images list as argument to the script.
@@ -34,22 +30,8 @@
 #
 #  There are other options available, as listed by `run_me.sh -h`:
 #
-#  -d ............. don't download archives
-#  -t ............. don't transfer images to phone
-#  +t ............. transfer images to phone
-#  -e ............. don't extract archive (= keep local code modifications)
-#  -c ............. don't recompile the timing binary
-#  +c ............. recompile the timing binary
-#  -r ............. only re-run timing (equivalent to -d -t -e -c)
-#  -R <string> .... releases to test (e.g. "0.5.0 0.5.2 0.6.0")
-#  -loops <int> ... number of timing loops to perform
-#  -arch <string> . target ndk architecture (armeabi-v7a, arm64-v8a, ...)
-#
-# To reduce the measurement variability:
-#  * beware of thermal throttling on the device!
-#  * it is advised to have the device be in 'airplane mode' 
-#  * try to keep the screen switched on (by regularly swiping, e.g.)
-#  * don't hesitate to use -loops option to raise the number of loops
+#  Beware of thermal throttling on the device! It is advised to have the device
+#  be in 'airplane mode' and with screen on, to avoid measurement variability.
 #
 #  -> Overall, expect at least 2% timing noise!
 
@@ -71,7 +53,7 @@ compile="yes"
 # parameters
 adb='adb'
 ndk_build='ndk-build'
-arch="armeabi"
+arch="armeabi-v7a"
 num_loops="2"    # number of decoding loops to perform for timing
 
 # command-line arguments and list of pictures to test
@@ -88,6 +70,7 @@ usage() {
   echo "  -R <string> .... releases to test (e.g. \"0.5.0 0.5.2 0.6.0\")"
   echo "  -loops <int> ... number of timing loops to perform"
   echo "  -arch <string> . target ndk architecture (armeabi-v7a, arm64-v8a, ...)"
+  echo "  -adb <string> .. the device id to use with 'adb'"
   echo "  -h ............. this help"
   echo
   echo " Example: \'./run_me.sh -r +t images/some_new*.webp\' will transfer some "
@@ -114,6 +97,7 @@ if [ ! -z "$1" ]; then
         compile="no"
       ;;
       -loops) shift; num_loops=$1;;
+      -adb) shift; adb="adb -s $1";;
       -arch) shift; arch=$1;;
       -R) shift; releases=$1;;
       -h|--help) usage;;
