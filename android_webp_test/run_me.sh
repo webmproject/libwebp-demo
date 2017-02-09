@@ -4,9 +4,9 @@
 #
 # Version 003
 #
-# This script will download the released liwebp archives, patch them, compile
-# a binary named 'dec_speed_*' to measure decoding speed, run it on the device
-# and report the numbers.
+# This script will download the released libwebp archives, compile a binary named
+# 'dec_speed_*' to measure decoding speed, run it on the device and report the
+# decoding speed.
 #
 # Pre-requisites:
 #   android NDK
@@ -15,12 +15,16 @@
 #   a writable /data/local/tmp directory on your device
 #
 # How to run:
+#
+#    ./run_me.sh images/*.webp
+#
+#  should suffice.
 #  By default, the script with download, extract and compile the official
 #  libwebp release archives. It will also transfer the images to test on the
 #  phone.
-#  Subsequently, you can use the '-r' option to only re-do the timing test.
-#  To only redo the timing test with new images, use the options "-r +t" (in
-#  this order).
+#  Subsequently, you can use the `-r` option to only re-do the timing test.
+#  To only redo the timing test with new images, use the options `-r +t`
+#  (in this order).
 #
 #  The pictures you want to use for testing are searched as ./images/*.webp
 #  by default. You can pass the images list as argument to the script.
@@ -41,8 +45,11 @@
 #  -loops <int> ... number of timing loops to perform
 #  -arch <string> . target ndk architecture (armeabi-v7a, arm64-v8a, ...)
 #
-#  Beware of thermal throttling on the device! It is advised to have the device
-#  be in 'airplane mode' and with screen on, to avoid measurement variability.
+# To reduce the measurement variability:
+#  * beware of thermal throttling on the device!
+#  * it is advised to have the device be in 'airplane mode' 
+#  * try to keep the screen switched on (by regularly swiping, e.g.)
+#  * don't hesitate to use -loops option to raise the number of loops
 #
 #  -> Overall, expect at least 2% timing noise!
 
