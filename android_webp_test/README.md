@@ -51,6 +51,7 @@
    -R <string> .... releases to test (e.g. "0.5.0 0.5.2 0.6.0")
    -loops <int> ... number of timing loops to perform
    -arch <string> . target ndk architecture (armeabi-v7a, arm64-v8a, ...)
+   -adb <string> .. the device id to use with 'adb'
 ```
 
 ## Advices to get a more stable timing

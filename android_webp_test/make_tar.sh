@@ -1,6 +1,6 @@
 #!/bin/sh
 
-version="003"
+version="004"
 
 echo "****"
 echo " DID YOU UPAGE THE VERSION NUMBER TO ${version} IN THE run_me.sh HEADER?"
