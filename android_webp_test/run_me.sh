@@ -190,8 +190,9 @@ for version in ${releases}; do
     rm -rf obj libs jni
     ln -s ${archive} jni
     # build
-    ${ndk_build} -s APP_ABI=${arch} -j APP_CFLAGS=-fPIE APP_LDFLAGS=-pie
+    ${ndk_build} -s APP_ABI=${arch} -j APP_CFLAGS=-fPIE APP_LDFLAGS=-pie > /dev/null
     mv ./libs/${arch}/dec_speed ./bin/${bin_name}
+    echo " ... ${arch}_${version} compiled OK."
   fi
 
   ${adb} push ./bin/${bin_name} ${device_dir} &> /dev/null
