@@ -37,9 +37,9 @@ index 00d53baf..2aedec41 100644
 diff --git a/examples/dec_speed.c b/examples/dec_speed.c
 new file mode 100644
 index 00000000..76c4e47d
---- /dev/null
-+++ b/examples/dec_speed.c
-@@ -0,0 +1,113 @@
+--- /dev/null	2017-02-06 11:28:51.523690087 +0100
++++ dec_speed.c	2017-02-10 11:59:32.573220321 +0100
+@@ -0,0 +1,119 @@
 +// Copyright 2017 Google Inc. All Rights Reserved.
 +//
 +// Use of this source code is governed by a BSD-style license
@@ -128,12 +128,14 @@ index 00000000..76c4e47d
 +  error = 0;
 +
 +  {
++    const int kMinIterations = 3;   // untimed warm-up iterations
 +    double elapsed = 0.;
++    double min_time = -1.;
++    int n, k;
 +    for (n = 0; n < num_files; ++n) {
-+      int k;
-+      double start;
-+      for (k = 0; k < num_loops + 3; ++k) {
-+        if (k == 3) start = GetTime();
++      for (k = 0; k < num_loops + kMinIterations; ++k) {
++        const double now = GetTime();
++        double delta;
 +        const uint8_t* const out =
 +            WebPDecodeARGB(files_start[n], files_size[n], NULL, NULL);
 +        if (out == NULL) {
@@ -142,10 +144,14 @@ index 00000000..76c4e47d
 +          break;
 +        }
 +        free((void*)out);
++        if (k >= kMinIterations) {
++          delta = GetTime() - now;
++          if (min_time < 0. || delta < min_time) min_time = delta;
++          elapsed += delta;
++        }
 +      }
-+      elapsed += GetTime() - start;
 +    }
-+    printf("Elapsed: %.3lf s\n", elapsed);
++    printf("Elapsed: %.3lf s  Minimum: %.3lf s\n", elapsed, min_time);
 +  }
 +  if (error != 0) printf("PROBLEM!\n");
 +
