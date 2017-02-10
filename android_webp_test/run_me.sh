@@ -166,7 +166,7 @@ ${adb} push go_timing ${device_dir}
 ################################################################################
 # run the test
 
-echo "Testing..."
+echo "Testing ${arch}..."
 for version in ${releases}; do
   archive=libwebp-${version}
   bin_name="dec_speed_${arch}_${version}"
