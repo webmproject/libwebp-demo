@@ -37,8 +37,8 @@ index 00d53baf..2aedec41 100644
 diff --git a/examples/dec_speed.c b/examples/dec_speed.c
 new file mode 100644
 index 00000000..76c4e47d
---- /dev/null	2017-02-06 11:28:51.523690087 +0100
-+++ dec_speed.c	2017-02-10 11:59:32.573220321 +0100
+--- /dev/null
++++ b/examples/dec_speed.c	2017-02-10 11:59:32.573220321 +0100
 @@ -0,0 +1,119 @@
 +// Copyright 2017 Google Inc. All Rights Reserved.
 +//
@@ -161,4 +161,3 @@ index 00000000..76c4e47d
 +}
 -- 
 2.11.0.390.gc69c2f50cf-goog
-
