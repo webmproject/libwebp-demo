@@ -119,13 +119,15 @@ images_dir="${device_base_dir}/images"
 
 if [ x"${download_tgz}" = "xyes" ]; then
  echo "downloading archives ${releases}..."
- rm -rf archives/*;
+ if [ ! -e archives ]; then mkdir archives; fi
  for v in ${releases}; do
     archive=libwebp-${v}.tar.gz
     echo "  ... ${archive}"
-    wget -q https://storage.googleapis.com/downloads.webmproject.org/releases/webp/${archive}
-    mv ${archive} archives
-    echo "     OK."
+    if [ ! -e archives/${archive} ]; then
+      wget -q https://storage.googleapis.com/downloads.webmproject.org/releases/webp/${archive}
+      mv ${archive} archives
+      echo "   downloaded OK."
+    fi
  done
 fi
 
@@ -173,22 +175,21 @@ for version in ${releases}; do
 
   # extract the archive
   if [ x"${extract}" == "xyes" ]; then
-    # clean up past builds
-    rm -f jni
-    rm -rf ${archive} obj libs
-
     # extract
+    rm -rf ${archive}
     tar xzf archives/${archive}.tar.gz
-    ln -s ${archive} jni
-
     # patch
     cd ${home}/${archive}
-    patch -p1 < ${home}/0002-add-dec_speed-test-app.patch 
+    patch -p1 < ${home}/0002-add-dec_speed-test-app.patch
     cd ${home}
   fi
 
   # build test binary and push to device
   if [ x"${compile}" == "xyes" ]; then
+    # clean up past builds
+    rm -rf obj libs jni
+    ln -s ${archive} jni
+    # build
     ${ndk_build} -s APP_ABI=${arch} -j APP_CFLAGS=-fPIE APP_LDFLAGS=-pie
     mv ./libs/${arch}/dec_speed ./bin/${bin_name}
   fi
