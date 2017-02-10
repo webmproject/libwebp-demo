@@ -119,15 +119,15 @@ images_dir="${device_base_dir}/images"
 
 if [ x"${download_tgz}" = "xyes" ]; then
  echo "downloading archives ${releases}..."
- rm -rf archives/*;
+ if [ ! -e archives ]; then mkdir archives; fi
  for v in ${releases}; do
     archive=libwebp-${v}.tar.gz
     echo "  ... ${archive}"
-    if [ ! -e "archives/${archive}" ]; then
+    if [ ! -e archives/${archive} ]; then
       wget -q https://storage.googleapis.com/downloads.webmproject.org/releases/webp/${archive}
       mv ${archive} archives
+      echo "   downloaded OK."
     fi
-    echo "     OK."
  done
 fi
 
