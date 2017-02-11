@@ -64,6 +64,7 @@ usage() {
   echo "  -t ............. don't transfer images to phone"
   echo "  +t ............. transfer images to phone"
   echo "  -e ............. don't extract archive (= keep local code modifications)"
+  echo "  +e ............. extract archive (= erase local code modifications)"
   echo "  -c ............. don't recompile the timing binary"
   echo "  +c ............. recompile the timing binary"
   echo "  -r ............. only re-run timing (equivalent to -d -t -e -c)"
@@ -88,6 +89,7 @@ if [ ! -z "$1" ]; then
       +t) transfer_images="yes";;
       -d) download_tgz="no";;
       -e) extract="no";;
+      +e) extract="yes";;
       -c) compile="no";;
       +c) compile="yes";;
       -r|--rerun)
