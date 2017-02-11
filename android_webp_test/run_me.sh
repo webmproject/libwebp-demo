@@ -89,7 +89,7 @@ if [ ! -z "$1" ]; then
       +t) transfer_images="yes";;
       -d) download_tgz="no";;
       -e) extract="no";;
-      +e) extract="no";;
+      +e) extract="yes";;
       -c) compile="no";;
       +c) compile="yes";;
       -r|--rerun)
