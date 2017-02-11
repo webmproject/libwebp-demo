@@ -45,6 +45,7 @@
    -t ............. don't transfer images to phone
    +t ............. transfer images to phone
    -e ............. don't extract archive (= keep local code modifications)
+   +e ............. extract archive (= erase local code modifications)
    -c ............. don't recompile the timing binary
    +c ............. recompile the timing binary
    -r ............. only re-run timing (equivalent to -d -t -e -c)
