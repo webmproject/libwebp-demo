@@ -189,12 +189,18 @@ if (navigator.getBattery) {
 };
 
 // Build the GUI.
-var gui = new PaperGUI();
-gui.add(params, 'debug').name('Show debug').onChange(updateHud);
-gui.add(params, 'webp').name('Use WebP').onChange(updateHud);
-gui.add(params, 'size').min(100).max(1200).step(100).name('Image size').onChange(updateHud);
-gui.add(params, 'batterydrop').min(1).name('Stop test after battery drop (%)');
-gui.add(params, 'target', images).name('Target image');
-gui.add({test: function() {
-  fetchNext(true); }}, 'test').name('Test image load');
-gui.add(params, 'reset').name('Reset stats');
+document.addEventListener('PaperGUIReady', function() {
+  var gui = new PaperGUI();
+  gui.add(params, 'debug').name('Show debug').onChange(updateHud);
+  gui.add(params, 'webp').name('Use WebP').onChange(updateHud);
+  gui.add(params, 'size').min(100).max(1200).step(100).name('Image size').onChange(updateHud);
+  gui.add(params, 'batterydrop').min(1).name('Stop test after battery drop (%)');
+  gui.add(params, 'target', images).name('Target image');
+  gui.add({test: function() {
+    fetchNext(true); }}, 'test').name('Test image load');
+  gui.add(params, 'reset').name('Reset stats');
+});
+
+var guiScript = document.createElement('script');
+guiScript.src = 'https://google.github.io/paper-gui/dist/paperGUI.js';
+document.body.appendChild(guiScript);
