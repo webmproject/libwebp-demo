@@ -2,18 +2,17 @@
 
  * Goal:
   Evaluate the memory consumption when decoding a WebP file to an external buffer
- * Non-goal: encoding isn’t measured, nor speed.
+ * Non-goal: encoding memory isn’t measured, nor processing speed.
  
 ## Key result:
    * Lossy:       RAM used in bytes = <b>127. * width</b>
    * Lossless:    RAM using in bytes = <b>4.1 * width * height</b>
  
 ## Setup & methodology:
-  <a href="https://github.com/webmproject/libwebp/archive/v0.6.0.tar.gz">libwebp</a> has a built-in mechanism
+   * <a href="https://github.com/webmproject/libwebp/archive/v0.6.0.tar.gz">libwebp</a> has a built-in mechanism
   for tracking memory traffic (cf src/utils/utils.c).
-  We patch the libwebp 0.6.0 tree to export the high-water memory mark variable.
-  We compile a very simple program (ram_test.c) to incrementally decode some WebP bitstreams
-  to an external RGBA buffer.
+   * We patch the libwebp 0.6.0 tree to export the high-water memory mark variable.
+   * We compile a very simple program (ram_test.c) to incrementally decode some WebP bitstreams to an external RGBA buffer.
 
 ```
   wget https://github.com/webmproject/libwebp/archive/v0.6.0.tar.gz
@@ -25,7 +24,7 @@
   cd ..
 ```
 
-  Using ./ram_test, we then record the memory used for the decoding process (only!)
+  * Using ./ram_test, we then record the memory used for the decoding process (only!)
   and correlate this data to the image dimensions.
  
 ## Corpus
