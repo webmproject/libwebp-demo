@@ -1,0 +1,220 @@
+From f1d06a9c46114a3b11597b494e3946c4d680ab7c Mon Sep 17 00:00:00 2001
+From: Pascal Massimino <pascal.massimino@gmail.com>
+Date: Fri, 19 May 2017 13:05:02 +0200
+Subject: [PATCH] RAM-study patch
+
+Change-Id: I4fc234702a5aecdc1b1447a1629cabb04ac49be8
+---
+ examples/ram_test.c | 139 ++++++++++++++++++++++++++++++++++++++++++++++++++++
+ makefile.unix       |   7 ++-
+ src/utils/utils.c   |   7 ++-
+ 3 files changed, 150 insertions(+), 3 deletions(-)
+ create mode 100644 examples/ram_test.c
+
+diff --git a/examples/ram_test.c b/examples/ram_test.c
+new file mode 100644
+index 00000000..4ac80a3b
+--- /dev/null
++++ b/examples/ram_test.c
+@@ -0,0 +1,139 @@
++// Copyright 2017 Google Inc. All Rights Reserved.
++//
++// Use of this source code is governed by a BSD-style license
++// that can be found in the COPYING file in the root of the source
++// tree. An additional intellectual property rights grant can be found
++// in the file PATENTS. All contributing project authors may
++// be found in the AUTHORS file in the root of the source tree.
++// -----------------------------------------------------------------------------
++//
++//  Simple decoding test for monitoring RAM usage
++//
++// Author: Skal (pascal.massimino@gmail.com)
++
++#include <assert.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++
++#ifdef HAVE_CONFIG_H
++#include "webp/config.h"
++#endif
++
++#include "../examples/example_util.h"
++#include "../imageio/image_enc.h"
++#include "../imageio/webpdec.h"
++
++static uint8_t* AllocateExternalBuffer(WebPDecoderConfig* config,
++                                       WebPOutputFileFormat format,
++                                       int use_external_memory) {
++  uint8_t* external_buffer = NULL;
++  WebPDecBuffer* const output_buffer = &config->output;
++  int w = config->input.width;
++  int h = config->input.height;
++  if (config->options.use_scaling) {
++    w = config->options.scaled_width;
++    h = config->options.scaled_height;
++  } else if (config->options.use_cropping) {
++    w = config->options.crop_width;
++    h = config->options.crop_height;
++  }
++  if (format >= RGB && format <= rgbA_4444) {
++    const int bpp = (format == RGB || format == BGR) ? 3
++                  : (format == RGBA_4444 || format == rgbA_4444 ||
++                     format == RGB_565) ? 2
++                  : 4;
++    uint32_t stride = bpp * w + 7;   // <- just for exercising
++    external_buffer = (uint8_t*)malloc(stride * h);
++    if (external_buffer == NULL) return NULL;
++    output_buffer->u.RGBA.stride = stride;
++    output_buffer->u.RGBA.size = stride * h;
++    output_buffer->u.RGBA.rgba = external_buffer;
++  } else {    // YUV and YUVA
++    const int has_alpha = WebPIsAlphaMode(output_buffer->colorspace);
++    uint8_t* tmp;
++    uint32_t stride = w + 3;
++    uint32_t uv_stride = (w + 1) / 2 + 13;
++    uint32_t total_size = stride * h * (has_alpha ? 2 : 1)
++                        + 2 * uv_stride * (h + 1) / 2;
++    assert(format >= YUV && format <= YUVA);
++    external_buffer = (uint8_t*)malloc(total_size);
++    if (external_buffer == NULL) return NULL;
++    tmp = external_buffer;
++    output_buffer->u.YUVA.y = tmp;
++    output_buffer->u.YUVA.y_stride = stride;
++    output_buffer->u.YUVA.y_size = stride * h;
++    tmp += output_buffer->u.YUVA.y_size;
++    if (has_alpha) {
++      output_buffer->u.YUVA.a = tmp;
++      output_buffer->u.YUVA.a_stride = stride;
++      output_buffer->u.YUVA.a_size = stride * h;
++      tmp += output_buffer->u.YUVA.a_size;
++    } else {
++      output_buffer->u.YUVA.a = NULL;
++      output_buffer->u.YUVA.a_stride = 0;
++    }
++    output_buffer->u.YUVA.u = tmp;
++    output_buffer->u.YUVA.u_stride = uv_stride;
++    output_buffer->u.YUVA.u_size = uv_stride * (h + 1) / 2;
++    tmp += output_buffer->u.YUVA.u_size;
++
++    output_buffer->u.YUVA.v = tmp;
++    output_buffer->u.YUVA.v_stride = uv_stride;
++    output_buffer->u.YUVA.v_size = uv_stride * (h + 1) / 2;
++    tmp += output_buffer->u.YUVA.v_size;
++    assert(tmp <= external_buffer + total_size);
++  }
++  output_buffer->is_external_memory = use_external_memory;
++  return external_buffer;
++}
++
++// declared in src/utils/utils.c
++extern size_t high_water_mark;
++
++int main(int argc, const char *argv[]) {
++  int c;
++  for (c = 1; c < argc; ++c) {
++    const char *in_file = argv[c];
++
++    WebPDecoderConfig config;
++    WebPDecBuffer* const output_buffer = &config.output;
++    WebPBitstreamFeatures* const bitstream = &config.input;
++    WebPOutputFileFormat format = RGBA;   // rgbA?
++    uint8_t* external_buffer = NULL;
++    const uint8_t* data = NULL;
++    size_t data_size = 0;
++
++    if (!WebPInitDecoderConfig(&config)) {
++      fprintf(stderr, "Library version mismatch!\n");
++      return -1;
++    }
++    output_buffer->colorspace = MODE_RGBA;
++    if (!LoadWebP(in_file, &data, &data_size, bitstream)) {
++      return -1;
++    }
++    external_buffer = AllocateExternalBuffer(&config, format, 1);
++    if (external_buffer == NULL) return -1;
++
++    {
++      VP8StatusCode status;
++      high_water_mark = 0;
++      status = DecodeWebPIncremental(data, data_size, &config);
++      if (status != VP8_STATUS_OK) {
++        PrintWebPError(in_file, status);
++        return -1;
++      }
++      printf("%s %d x %d %d %lu\n",
++             in_file, bitstream->width, bitstream->height,
++             bitstream->width * bitstream->height,
++             high_water_mark);
++    }
++    WebPFreeDecBuffer(output_buffer);
++    free((void*)external_buffer);
++    free((void*)data);
++  }
++  
++  return 0;
++}
++
++//------------------------------------------------------------------------------
+diff --git a/makefile.unix b/makefile.unix
+index c8b38e55..45139909 100644
+--- a/makefile.unix
++++ b/makefile.unix
+@@ -332,7 +332,7 @@ OUT_LIBS += imageio/libimageenc.a
+ OUT_LIBS += src/libwebpdecoder.a
+ OUT_LIBS += src/libwebp.a
+ EXTRA_LIB = extras/libwebpextras.a
+-OUT_EXAMPLES = examples/cwebp examples/dwebp
++OUT_EXAMPLES = examples/cwebp examples/dwebp examples/ram_test
+ EXTRA_EXAMPLES = examples/gif2webp examples/vwebp examples/webpmux \
+                  examples/anim_diff examples/img2webp examples/webpinfo
+ OTHER_EXAMPLES = extras/get_disto extras/webp_quality extras/vwebp_sdl
+@@ -382,6 +382,7 @@ src/demux/libwebpdemux.a: $(LIBWEBPDEMUX_OBJS)
+ examples/anim_diff: examples/anim_diff.o $(ANIM_UTIL_OBJS) $(GIFDEC_OBJS)
+ examples/cwebp: examples/cwebp.o
+ examples/dwebp: examples/dwebp.o
++examples/ram_test: examples/ram_test.o
+ examples/gif2webp: examples/gif2webp.o $(GIFDEC_OBJS)
+ examples/vwebp: examples/vwebp.o
+ examples/webpmux: examples/webpmux.o
+@@ -404,6 +405,10 @@ examples/dwebp: imageio/libimageenc.a
+ examples/dwebp: imageio/libimageio_util.a
+ examples/dwebp: src/libwebp.a
+ examples/dwebp: EXTRA_LIBS += $(DWEBP_LIBS)
++examples/ram_test: imageio/libimagedec.a
++examples/ram_test: imageio/libimageio_util.a
++examples/ram_test: src/libwebp.a
++examples/ram_test: EXTRA_LIBS += $(DWEBP_LIBS)
+ examples/gif2webp: examples/libexample_util.a imageio/libimageio_util.a
+ examples/gif2webp: examples/libgifdec.a src/mux/libwebpmux.a src/libwebp.a
+ examples/gif2webp: EXTRA_LIBS += $(GIF_LIBS)
+diff --git a/src/utils/utils.c b/src/utils/utils.c
+index dfcd3ab2..1270d095 100644
+--- a/src/utils/utils.c
++++ b/src/utils/utils.c
+@@ -41,7 +41,7 @@
+ //   This can be used to emulate environment with very limited memory.
+ //   Example: export MALLOC_LIMIT=64000000 && ./examples/dwebp picture.webp
+ 
+-// #define PRINT_MEM_INFO
++ #define PRINT_MEM_INFO
+ // #define PRINT_MEM_TRAFFIC
+ // #define MALLOC_FAIL_AT
+ // #define MALLOC_LIMIT
+@@ -66,9 +66,12 @@ struct MemBlock {
+ };
+ 
+ static MemBlock* all_blocks = NULL;
++
++extern size_t high_water_mark;
++
+ static size_t total_mem = 0;
+ static size_t total_mem_allocated = 0;
+-static size_t high_water_mark = 0;
++size_t high_water_mark = 0;
+ static size_t mem_limit = 0;
+ 
+ static int exit_registered = 0;
+-- 
+2.13.0.303.g4ebf302169-goog
+
