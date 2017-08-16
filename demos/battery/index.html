@@ -11,11 +11,17 @@
 </head>
 
 <body>
-  <img id="container"></div>
+  <img id="image"></div>
   <div class="ui">
-    <button id="start" onClick="javascript:startStop()">Start</button>
-    <table id="debug"></table>
+    <button id="btn" onClick="startStop()">Start</button>
+    <table id="info">
+      <tr><td>
+        Hello there, welcome to this battery performance test. Battery API is required for this test and <a href="https://news.slashdot.org/story/16/11/01/1833254/firefox-disables-loophole-that-allows-sites-to-track-users-via-battery-status">might not be around for very long</a>.
+        <p>Press Start to run the test, or use the orange buttton to fiddle with the parameters. To reduce noise, make sure to test over a large-enough battery drain threshold (default is 5%).</p>
+      </td></tr>
+    </table>
   </div>
+  <textarea class="copyme"></textarea>
   <script src="js/index.js"></script>
 </body>
 
