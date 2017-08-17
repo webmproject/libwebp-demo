@@ -17,11 +17,10 @@ Sources: https://github.com/webmproject/libwebp-demo/tree/gh-pages/webp_wasm
 
 Sources: https://github.com/webmproject/libwebp-demo/tree/gh-pages/webp_js
 
-
 ## Decoding timing test
 
 [android_timing_test/](https://github.com/webmproject/libwebp-demo/tree/master/android_webp_test) contains a script to measure the decoding speed on Android devices.
 
 ## Battery usage test
 
-[demos/battery/](https://github.com/webmproject/libwebp-demo/tree/master/demos/battery) contains a script to measure the battery consumption when repeatingly decoding an image (WebP, JPEG, ...).
+[demos/battery/](https://github.com/webmproject/libwebp-demo/tree/gh-pages/demos/battery) contains a script to measure the battery consumption when repeatingly decoding an image (WebP, JPEG, ...).

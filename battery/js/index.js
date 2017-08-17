@@ -1,204 +1,255 @@
-// List of test images.
-var images = {
-  'Starry Night': 'https://lh6.ggpht.com/HlgucZ0ylJAfZgusynnUwxNIgIp5htNhShF559x3dRXiuy_UdP3UQVLYW6c',
-  'T-Rex': 'https://lh4.ggpht.com/qCW18EYlcmqi-NIHuJ5VtwR1Cf8UlNzP-D0aqkPKG2nLzug3j8WnUtD2bwJ7',
-  'The Kiss': 'https://lh4.ggpht.com/UuYCUnqvo2EIZhyFHYFVLbkmma_cubVk7SwxOF3lklT6aor5647BXVhEaFB7jg',
-  'Nemo': 'https://lh3.googleusercontent.com/hDdgaQfhLXH7R8yaaHqcpvja5halx6LFzSc8NU50AqzjWyDZvNuZyOu7_HQBxpgJCw'
+// List of preset test images. CORS must be enabled for these resources.
+const images = {
+  'Example 1 - WebP (600×800px)': 'https://www.gstatic.com/webp/measurement/example1.webp',
+  'Example 1 - JPEG (600×800px)': 'https://www.gstatic.com/webp/measurement/example1.jpg',
+  'Example 2 - WebP (800x533px)': 'https://www.gstatic.com/webp/measurement/example2.webp',
+  'Example 2 - JPEG (800×533px)': 'https://www.gstatic.com/webp/measurement/example2.jpg',
+  'Example 3 - WebP (1200×800px)': 'https://www.gstatic.com/webp/measurement/example3.webp',
+  'Example 3 - JPEG (1200×800px)': 'https://www.gstatic.com/webp/measurement/example3.jpg',
 };
 
-// Experiment configuration params.
-var params = {};
-params.debug = true;
-params.webp = true;
-params.size = 400;
-params.target = images['Starry Night'];
-params.batterydrop = 5;
+// Experiment configuration parameters.
+const params = {
+  showInfo: true,
+  presetUrl: images['Example 1 - WebP (600×800px)'],
+  customUrl: '',
+  batteryDrop: 5
+};
 
-// Public vars.
+// Public variables.
 var counter = 0;
-var stats, timer, initialBatt;
-var hud = {};
-var lock = false;
 var running = false;
-var once = false;
-var debugEl = document.getElementById('debug');
-var containerEl = document.getElementById('container');
+var timings, fetchPromise, once;
+var stats = {};
+var infoEl = document.getElementById('info');
+var imageEl = document.getElementById('image');
 
-var avg = function(arr) {
-  return arr.reduce(function(a, b) {
-    return a + b;
-  }) / arr.length;
-};
-
-var updateHud = function() {
-  if (!params.debug) {
-    debugEl.style.display = 'none';
-    return;
-  }
-  hud['Image format'] = params.webp ? 'WebP' : 'JPEG';
-  hud['Fetch count'] = counter;
-  if (stats.batt.length) {
-    hud['Images/batt.% (avg)'] = stats.batt[stats.batt.length - 1] + ' (' + Math.round(avg(stats.batt)) + ')';
-  }
-  if (stats.fetch.length) {
-    hud['Fetch time (avg)'] = stats.fetch[stats.fetch.length - 1] + ' ms (' + Math.round(avg(stats.fetch)) + ' ms)';
-  }
-  if (stats.read.length) {
-    hud['Decode time (avg)'] = stats.read[stats.read.length - 1] + ' ms (' + Math.round(avg(stats.read)) + ' ms)';
-  }
-  if (stats.dom.length) {
-    hud['DOM time (avg)'] = stats.dom[stats.dom.length - 1] + ' ms (' + Math.round(avg(stats.dom)) + ' ms)';
-  }
-
-  debugEl.style.display = '';
-  var data = '';
-  Object.keys(hud).forEach(function(key, index) {
-    data += '<tr><td>' + key + '</td><td>' + hud[key] + '</td></tr>';
-  });
-  debugEl.innerHTML = data;
-}
-
-var updateBattery = function(level) {
-  if (running && !!initialBatt) {
-    if (stats.batt.length > 0) {
-      stats.batt.push(
-      counter - stats.batt.reduce(function(a, b) {
-        return a + b;
-      }));
-    } else {
-      stats.batt.push(counter);
-    }
-    if ((initialBatt - level) >= params.batterydrop / 100) {
-      stop();
-    }
-  }
-  hud['Battery level'] = Math.floor(level * 100);
-  updateHud();
-}
-
-params.reset = function() {
-  stats = {
-    fetch: [],
-    read: [],
-    dom: [],
-    batt: []
-  };
+// Clears the stats object and fetch counter.
+function resetStats() {
+  stats = {};
   counter = 0;
-  hud = {
-    'Battery level': hud['Battery level']
-  };
-  updateHud();
+  imageEl.src = '';
+  updateInfo();
 };
 
-
-var storeTimings = function(timings) {
-  stats.fetch.push(timings.ready - timings.start);
-  stats.read.push(timings.readEnd - timings.ready);
-  stats.dom.push(timings.domEnd - timings.readEnd);
-}
-
-var fetch = function(url) {
-  if (lock) {
+// Renders the stats object as an HTML table.
+function updateInfo() {
+  if (!params.showInfo) {
+    infoEl.style.display = 'none';
     return;
   }
-  lock = true;
-  timer = {};
+  var tableData = {};
 
-  var reader = new FileReader();
-  reader.onloadend = function() {
-    timer.readEnd = Date.now();
-    containerEl.src = reader.result;
-  };
+  if (stats.currentBatt && stats.initialBatt) {
+    tableData['Battery level (at start)'] = Math.floor(stats.currentBatt * 100)
+        + '% (' + Math.floor(stats.initialBatt * 100) + '%)';
+  }
+  if (stats.fileSize && stats.mime) {
+    tableData['File info'] = stats.mime +  ', '
+        + Math.round(stats.fileSize / 1000) + ' Kb';
+  }
+  tableData['Fetch count'] = counter;
+  if (stats.batt && stats.batt.length) {
+    tableData['Images/batt.% (avg)'] = stats.batt[stats.batt.length - 1] + ' ('
+        + Math.round(average(stats.batt)) + ')';
+  }
+  if (stats.fetch && stats.fetch.length) {
+    tableData['Fetch time (avg)'] = stats.fetch[stats.fetch.length - 1]
+        + ' ms (' + Math.round(average(stats.fetch)) + ' ms)';
+  }
+  if (stats.load && stats.load.length) {
+    tableData['Load time (avg)'] = stats.load[stats.load.length - 1] + ' ms ('
+        + Math.round(average(stats.load)) + ' ms)';
+  }
 
-  var xhr = new XMLHttpRequest();
-  xhr.open('GET', url);
-  xhr.responseType = 'blob';
-  xhr.onload = function(e) {
-    counter++;
-    if (xhr.readyState == 4) {
-      timer.ready = Date.now();
-      var blob = xhr.response;
-      reader.readAsDataURL(blob);
-    }
+  var html = '';
+  Object.keys(tableData).forEach(function(key) {
+    html += '<tr><td>' + key + '</td><td>' + tableData[key] + '</td></tr>';
+  });
+  window.requestAnimationFrame(function() {
+    infoEl.innerHTML = html;
+    infoEl.style.display = '';
+  });
+}
+
+// Downloads an image by URL via fetch API, storing some stats in the process,
+// and renders it to the DOM via createObjectURL.
+var doFetch = function(url) {
+  if (fetchPromise) {
+    return;
+  }
+  timings = {
+    fetchStart: Date.now()
   };
-  timer.start = Date.now();
-  xhr.send();
+  fetchPromise = fetch(url)
+    .then(function(response) {
+      timings.fetchEnd = Date.now();
+      return response.blob();
+    }, function(e) {
+      alert('Unable to fetch the image. Either the URL is incorrect'
+          + ' or the file has no Access-Control-Allow-Origin header.');
+      stop();
+      fetchPromise = null;
+    })
+    .then(function(imageBlob) {
+      fetchPromise = null;
+      if (!imageBlob || imageBlob.type.indexOf('image/') < 0) {
+        alert('Woops, fetched file is not an image!');
+        stop();
+        return;
+      }
+      stats.mime = imageBlob.type.replace('image/', '');
+      stats.fileSize = imageBlob.size;
+      URL.revokeObjectURL(imageEl.src);
+      var objectURL = URL.createObjectURL(imageBlob);
+      timings.loadStart = Date.now();
+      imageEl.src = objectURL;
+      counter++;
+    });
+
 };
 
+// Fetches the next image or shows test results if the loop was interrupted.
 var fetchNext = function(opt_manual) {
   once = !!opt_manual;
   if (!running && !opt_manual) {
-    alert('Test complete. Images loaded: ' + counter);
+    alert('Test complete!\n\nImages loaded: ' + counter
+        + (stats.batt && stats.batt.length ? '\nImages/batt.%: '
+        + Math.round(average(stats.batt)) : '\nNo battery stats.'));
     return;
   }
-  var options = '=s' + params.size + (params.webp ? '-rw' : '-rj');
-  fetch(params.target + options + '?count=' + counter + '&batt=' + hud['Battery level'] + '&ts=' + Date.now());
+  var url = params.customUrl || params.presetUrl;
+  doFetch(url + '?ts=' + Date.now());
 };
 
-var stop = function() {
+// Image element load callback. Tracks timings and triggers the next fetch.
+imageEl.onload = function() {
+  var loadEnd = Date.now();
+  if (!stats.fetch) {
+    stats.fetch = [];
+    stats.load = [];
+  }
+  stats.fetch.push(timings.fetchEnd - timings.fetchStart);
+  stats.load.push(loadEnd - timings.loadStart);
+  updateInfo();
+  !once && fetchNext();
+  once = false;
+};
+
+// Interrupts the fetch loop.
+function stop() {
   running = false;
-  document.getElementById('start').innerText = 'Start';
+  document.getElementById('btn').innerText = 'Start';
 }
 
-var startStop = function() {
+// Callback for the start/stop button. Runs or interrupts the fetch loop.
+function startStop() {
   if (running) {
     stop();
     return;
   }
   var start = function() {
-    document.getElementById('start').innerText = 'Stop';
+    document.getElementById('btn').innerText = 'Stop';
     running = true;
-    params.reset();
     fetchNext();
   }
-  initialBatt = null;
   if (navigator.getBattery) {
     navigator.getBattery().then(function(battery) {
-      initialBatt = battery.level;
+      stats.initialBatt = stats.currentBatt = battery.level;
       if (battery.charging) {
-        alert('Device is currently charging, the test will likely run until you stop it manually.');
-        start();
+        alert('Device is currently charging, the test will likely run until'
+            + ' you stop it manually.');
       }
       start();
     });
   } else {
-    alert('Device doesn\'t support battery API, you\'ll have to manually stop the test.');
+    alert('Device doesn\'t support battery API, you\'ll have to manually stop'
+        + ' the test.');
     start();
   }
 };
 
-// Init stuff.
-params.reset();
-containerEl.onload = function() {
-  timer.domEnd = Date.now();
-  storeTimings(timer);
-  lock = false;
-  updateHud();
-  !once && fetchNext();
-  once = false;
-};
+// Battery level change handler. Logs the fetched images count per dropped %.
+function batteryChangeHandler(level) {
+  if (running && !!stats.initialBatt) {
+    if (!stats.batt) {
+      stats.batt = [];
+    }
+    if (stats.batt.length > 0) {
+      stats.batt.push(
+        counter - stats.batt.reduce(function(a, b) {
+          return a + b;
+        }));
+    } else if (stats.initialBatt - level < 0.02) {
+      // First battery level log. We skip the first percent drop because
+      // it was probably not entirely consumed by the test and would skew
+      // the stats.
+      stats.firstPercentDrop = counter;
+    } else {
+      // First entry in the batt stats (count of images for the first full
+      // percent drop).
+      stats.batt.push(counter - stats.firstPercentDrop);
+    }
+    if ((stats.initialBatt - level) >= params.batteryDrop / 100) {
+      stop();
+    }
+  }
+  stats.currentBatt = level;
+  updateInfo();
+}
 
-// Monitor battery level changes.
+// Monitors battery level changes.
 if (navigator.getBattery) {
   navigator.getBattery().then(function(battery) {
     battery.onlevelchange = function() {
-      updateBattery(battery.level);
+      batteryChangeHandler(battery.level);
     };
-    updateBattery(battery.level);
   });
+};
+
+// Utility function.
+function average(arr) {
+  return arr.reduce((a, b) => a + b) / arr.length;
 };
 
 // Build the GUI.
 document.addEventListener('PaperGUIReady', function() {
   var gui = new PaperGUI();
-  gui.add(params, 'debug').name('Show debug').onChange(updateHud);
-  gui.add(params, 'webp').name('Use WebP').onChange(updateHud);
-  gui.add(params, 'size').min(100).max(1200).step(100).name('Image size').onChange(updateHud);
-  gui.add(params, 'batterydrop').min(1).name('Stop test after battery drop (%)');
-  gui.add(params, 'target', images).name('Target image');
-  gui.add({test: function() {
-    fetchNext(true); }}, 'test').name('Test image load');
+  gui.add(params, 'showInfo').name('Show stats (uses more battery)')
+      .onChange(updateInfo);
+  gui.add(params, 'batteryDrop').min(2)
+      .name('Stop test after battery drop (%)');
+  gui.add(params, 'presetUrl', images).name('Target image').onChange(stop);
+  gui.add(params, 'customUrl').name('Custom image URL').onChange(stop);
+  params.test = function() {
+    !running && fetchNext(true);
+  };
+  gui.add(params, 'test').name('Test image load');
+  params.reset = function() {
+    resetStats();
+  };
   gui.add(params, 'reset').name('Reset stats');
+
+  // Bonus feature: export stats object to clipboard.
+  if (document.queryCommandSupported('copy')) {
+    params.copyStats = function() {
+      window.getSelection().removeAllRanges();
+      var textContainerEl = document.querySelector('.copyme');
+      textContainerEl.value = JSON.stringify(stats);
+      var range = document.createRange();
+      range.selectNode(textContainerEl);
+      window.getSelection().addRange(range);
+      try {
+        var successful = document.execCommand('copy');
+        alert(successful ?
+            'Stats have been copied to your clipboard as a JSON string.' :
+            'Copy command failed!');
+      } catch(e) {
+        alert('Woops. Clouldn\'t copy the data to the clipboard!' + e);
+      }
+    };
+    gui.add(params, 'copyStats').name('Export stats');
+  }
 });
 
 var guiScript = document.createElement('script');
