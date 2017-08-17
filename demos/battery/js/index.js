@@ -1,17 +1,17 @@
 // List of preset test images. CORS must be enabled for these resources.
-var images = {
-  'WebP 600 x 800 px': 'https://www.gstatic.com/webp/measurement/example1.webp',
-  'WebP 800 x 533 px': 'https://www.gstatic.com/webp/measurement/example2.webp',
-  'WebP 1200 x 800 px': 'https://www.gstatic.com/webp/measurement/example3.webp',
-  'JPEG 600 x 800 px': 'https://www.gstatic.com/webp/measurement/example1.jpg',
-  'JPEG 800 x 533 px': 'https://www.gstatic.com/webp/measurement/example2.jpg',
-  'JPEG 1200 x 800 px': 'https://www.gstatic.com/webp/measurement/example3.jpg',
+const images = {
+  'Example 1 - WebP (600×800px)': 'https://www.gstatic.com/webp/measurement/example1.webp',
+  'Example 1 - JPEG (600×800px)': 'https://www.gstatic.com/webp/measurement/example1.jpg',
+  'Example 2 - WebP (800x533px)': 'https://www.gstatic.com/webp/measurement/example2.webp',
+  'Example 2 - JPEG (800×533px)': 'https://www.gstatic.com/webp/measurement/example2.jpg',
+  'Example 3 - WebP (1200×800px)': 'https://www.gstatic.com/webp/measurement/example3.webp',
+  'Example 3 - JPEG (1200×800px)': 'https://www.gstatic.com/webp/measurement/example3.jpg',
 };
 
 // Experiment configuration parameters.
-var params = {
+const params = {
   showInfo: true,
-  presetUrl: images['WebP 600 x 800 px'],
+  presetUrl: images['Example 1 - WebP (600×800px)'],
   customUrl: '',
   batteryDrop: 5
 };
@@ -213,36 +213,46 @@ function average(arr) {
 };
 
 // Build the GUI.
-var gui = new PaperGUI();
-gui.add(params, 'showInfo').name('Show stats (uses more battery)')
-    .onChange(updateInfo);
-gui.add(params, 'batteryDrop').min(2).name('Stop test after battery drop (%)');
-gui.add(params, 'presetUrl', images).name('Target image').onChange(stop);
-gui.add(params, 'customUrl').name('Custom image URL').onChange(stop);
-params.test = function() {
-  !running && fetchNext(true);
-};
-gui.add(params, 'test').name('Test image load');
-params.reset = function() {
-  resetStats();
-};
-gui.add(params, 'reset').name('Reset stats');
-
-// Bonus feature: export stats object to clipboard.
-if (document.queryCommandSupported('copy')) {
-  params.copyStats = function() {
-    window.getSelection().removeAllRanges();
-    var textContainerEl = document.querySelector('.copyme');
-    textContainerEl.value = JSON.stringify(stats);
-    var range = document.createRange();
-    range.selectNode(textContainerEl);
-    window.getSelection().addRange(range);
-    try {
-      var successful = document.execCommand('copy');
-      alert(successful ? 'Stats have been copied to your clipboard as a JSON string.' : 'Copy command failed!');
-    } catch(e) {
-      alert('Woops. Clouldn\'t copy the data to the clipboard!' + e);
-    }
+document.addEventListener('PaperGUIReady', function() {
+  var gui = new PaperGUI();
+  gui.add(params, 'showInfo').name('Show stats (uses more battery)')
+      .onChange(updateInfo);
+  gui.add(params, 'batteryDrop').min(2)
+      .name('Stop test after battery drop (%)');
+  gui.add(params, 'presetUrl', images).name('Target image').onChange(stop);
+  gui.add(params, 'customUrl').name('Custom image URL').onChange(stop);
+  params.test = function() {
+    !running && fetchNext(true);
   };
-  gui.add(params, 'copyStats').name('Export stats');
-}
+  gui.add(params, 'test').name('Test image load');
+  params.reset = function() {
+    resetStats();
+  };
+  gui.add(params, 'reset').name('Reset stats');
+
+  // Bonus feature: export stats object to clipboard.
+  if (document.queryCommandSupported('copy')) {
+    params.copyStats = function() {
+      window.getSelection().removeAllRanges();
+      var textContainerEl = document.querySelector('.copyme');
+      textContainerEl.value = JSON.stringify(stats);
+      var range = document.createRange();
+      range.selectNode(textContainerEl);
+      window.getSelection().addRange(range);
+      try {
+        var successful = document.execCommand('copy');
+        alert(successful ?
+            'Stats have been copied to your clipboard as a JSON string.' :
+            'Copy command failed!');
+      } catch(e) {
+        alert('Woops. Clouldn\'t copy the data to the clipboard!' + e);
+      }
+    };
+    gui.add(params, 'copyStats').name('Export stats');
+  }
+});
+
+var guiScript = document.createElement('script');
+guiScript.src = 'https://google.github.io/paper-gui/dist/paperGUI.js';
+document.body.appendChild(guiScript);
+
