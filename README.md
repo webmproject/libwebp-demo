@@ -11,11 +11,12 @@ image format.
 
 Sources: https://github.com/webmproject/libwebp-demo/tree/gh-pages/webp_js
 
-
 ## Decoding timing test
 
 [android_timing_test/](https://github.com/webmproject/libwebp-demo/tree/master/android_webp_test) contains a script to measure the decoding speed on Android devices.
 
 ## Battery usage test
 
-[demos/battery/](https://github.com/webmproject/libwebp-demo/tree/master/demos/battery) contains a script to measure the battery consumption when repeatingly decoding an image (WebP, JPEG, ...).
+[battery](https://webmproject.github.io/libwebp-demo/battery/index.html) contains a script to measure the battery consumption when repeatingly decoding an image (WebP, JPEG, ...).
+
+Sources: https://github.com/webmproject/libwebp-demo/tree/gh-pages/battery
